@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entre Tres Mundos</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0608;
+  --surface: rgba(15, 6, 8, 0.75);
+  --surface2: rgba(30, 10, 14, 0.88);
+  --gold: #c9a550;
+  --gold-light: #e2c078;
+  --julian: #c9a550;
+  --mateo: #8b1a2f;
+  --leo: #d4c9b0;
+  --text: #faf5ee;
+  --text-dim: #9e8e82;
+}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── FONDO DE ESCENA ─────────────────────────────────────────────── */
+  #scene-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: opacity 0.6s ease;
+  }
+  #scene-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(10,7,8,0.55) 0%,
+      rgba(10,7,8,0.70) 40%,
+      rgba(10,7,8,0.88) 100%
+    );
+  }
+  #scene-bg.no-image {
+    background-color: var(--bg);
+    background-image: none !important;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  #app {
+    position: relative;
+    z-index: 10;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .scene {
+    display: none;
+    animation: fadeIn 0.7s ease forwards;
+    padding: 60px 0 80px;
+  }
+  .scene.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .chapter-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+  .chapter-label span { color: var(--scene-color, var(--gold)); }
+
+  .scene-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    color: var(--text);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+  }
+
+  .divider {
+    width: 48px;
+    height: 1px;
+    background: var(--scene-color, var(--gold));
+    margin: 24px 0;
+    opacity: 0.6;
+  }
+
+  .scene-body {
+    font-size: 18px;
+    line-height: 1.85;
+    color: #d4c8be;
+    font-weight: 300;
+    margin-bottom: 40px;
+    font-style: italic;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+    background: rgba(10,7,8,0.45);
+    padding: 20px 24px;
+    backdrop-filter: blur(2px);
+  }
+
+  .choices-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+
+  .choice-btn {
+    background: var(--surface);
+    border: 1px solid rgba(201,169,110,0.15);
+    color: var(--text);
+    padding: 18px 24px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 300;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+  }
+  .choice-btn::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--scene-color, var(--gold));
+    transform: scaleY(0);
+    transition: transform 0.25s ease;
+  }
+  .choice-btn:hover {
+    background: var(--surface2);
+    border-color: rgba(201,169,110,0.4);
+    padding-left: 32px;
+  }
+  .choice-btn:hover::before { transform: scaleY(1); }
+
+  .choice-letter {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--scene-color, var(--gold));
+    display: block;
+    margin-bottom: 4px;
+    opacity: 0.8;
+  }
+
+  .final-scene .scene-title { font-size: clamp(32px, 6vw, 52px); }
+
+  .final-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--scene-color, var(--gold));
+    border: 1px solid var(--scene-color, var(--gold));
+    padding: 6px 14px;
+    margin-bottom: 28px;
+    opacity: 0.85;
+  }
+
+  .restart-btn {
+    margin-top: 48px;
+    background: transparent;
+    border: 1px solid rgba(201,169,110,0.3);
+    color: var(--text-dim);
+    padding: 14px 28px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .restart-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .intro-scene { text-align: center; }
+  .intro-scene .ornament {
+    color: var(--gold); font-size: 28px; opacity: 0.5;
+    margin-bottom: 32px; display: block;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+  }
+  .intro-scene .scene-title { font-size: clamp(36px, 7vw, 60px); }
+  .intro-subtitle {
+    font-size: 16px; color: var(--text-dim); font-style: italic;
+    margin-bottom: 48px; letter-spacing: 0.05em;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+  }
+
+  .character-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 40px 0 48px;
+    text-align: left;
+  }
+  .char-card {
+    background: rgba(13,10,9,0.7);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 16px;
+    backdrop-filter: blur(6px);
+    transition: all 0.3s;
+  }
+  .char-card:hover { transform: translateY(-4px); border-color: var(--char-color); }
+  .char-card .char-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; color: var(--char-color); margin-bottom: 6px;
+  }
+  .char-card .char-role { font-size: 12px; color: var(--text-dim); font-style: italic; }
+
+  .start-btn {
+    background: var(--gold); color: #0a0708; border: none;
+    padding: 16px 48px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.3em;
+    text-transform: uppercase; cursor: pointer; transition: all 0.3s;
+  }
+  .start-btn:hover { background: var(--gold-light); transform: translateY(-2px); }
+
+  .trail {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 2px; background: rgba(255,255,255,0.05); z-index: 100;
+  }
+  .trail-fill {
+    height: 100%;
+    background: var(--gold);
+    transition: width 0.5s ease, background 0.5s ease;
+    width: 0%;
+  }
+
+  @media (max-width: 480px) {
+    .character-cards { grid-template-columns: 1fr; }
+    .scene { padding: 40px 0 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="scene-bg" class="no-image"></div>
+<div class="trail"><div class="trail-fill" id="trail"></div></div>
+<div id="app"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+//
+//   🖼️  IMÁGENES POR ESCENA - edita solo este objeto
+//
+//   Pon la ruta de tu imagen en cada entrada. Ejemplos:
+//     "imagenes/gala.jpg"          ← carpeta junto al .html
+//     "img/ap02_julian_vip.webp"   ← subcarpeta img/
+//     ""                           ← sin imagen (fondo negro)
+//
+//   Tip: pon todas tus imágenes en una carpeta "imagenes/" al lado
+//   del archivo .html y solo escribe el nombre del archivo aquí.
+//
+// ══════════════════════════════════════════════════════════════════════════
+const IMAGENES = {
+  intro: "",          // Pantalla de inicio
+
+  A:    "tresopciones.jpg",           // AP 01 · Gala Benéfica Internacional
+
+  // ── Julián ──────────────────────────────────────────────────────────
+  B:    "zonavip.jpg",           // AP 02 · Julián - zona VIP
+  B2:   "juliancelos.jpg",           // AP 03 · Julián - Leo y los celos
+  B3:   "juliantrabajo.jpg",           // AP 04 · Julián - oferta de trabajo
+  B4:   "secretogaleria.jpg",           // AP 05 · Julián - el secreto de la galería
+  B5:   "invitacionparis.jpg",           // AP 06 · Julián - propuesta Londres
+  B6:   "exitoparis.jpg",           // FINAL A1 · Reina del lujo en Europa
+  B7:   "dospaises.jpg",           // FINAL A2 · Pareja entre dos países
+  B8:   "imperio.jpg",           // FINAL A3 · Fundas tu propio imperio
+
+  // ── Mateo ───────────────────────────────────────────────────────────
+  C:    "muralmateo.jpg",           // AP 11 · Mateo - el mural
+  C2:   "muralviral.jpg",           // AP 12 · Mateo - se vuelve viral
+  C3:   "mateoconfesion.jpg",           // AP 13 · Mateo - la confesión
+  C4:   "galeriacomprada.jpg",           // AP 14 · Mateo - Julián compra la expo
+  C5:   "becamateo.jpg",           // AP 15 · Mateo - beca a París
+  C6:   "vidabohemia.jpg",           // FINAL B1 · Vida bohemia por Europa
+  C7:   "artistafamosa.jpg",           // FINAL B2 · Te vuelves artista internacional
+
+  // ── Leo ─────────────────────────────────────────────────────────────
+  D:    "propuestaleo.jpg",           // AP 21 · Leo - confesión en el jardín
+  D2:   "leosospecha.jpg",           // AP 22 · Leo - sospecha de Julián
+  D3:   "viajeeuropa.jpg",           // AP 23 · Leo - viaje juntos
+  D4:   "leolejos.jpg",           // AP 24 · Leo - trabajo lejos
+  D5:   "julianymateo.jpg",           // AP 25 · Leo - reaparecen Julián y Mateo
+  D6:   "familiafeliz.jpg",           // FINAL C1 · Familia estable y amor real
+  D7:   "viajesola.jpg",           // FINAL C2 · Viajas sola y renaces
+  X:    "trianguloamoroso.jpg",           // FINAL MIXTO · Nuevo triángulo amoroso
+};
+// ══════════════════════════════════════════════════════════════════════════
+
+
+const SCENES = {
+  intro: { type: 'intro' },
+  A: {
+    id: 'AP 01', color: 'gold',
+    title: 'Gala Benéfica Internacional',
+    body: 'El salón reluce bajo arañas de cristal. Entre champán y conversaciones en varios idiomas, tres presencias se cruzan en tu camino esta noche.',
+    choices: [
+      { text: 'Acercarte a Julián - el magnate que domina la sala', next: 'B' },
+      { text: 'Buscar a Mateo - el artista rebelde junto a la barra', next: 'C' },
+      { text: 'Encontrar a Leo - tu amigo de toda la vida', next: 'D' }
+    ]
+  },
+  B: {
+    id: 'AP 02', color: 'julian', character: 'Julián',
+    title: 'El magnate te invita a la zona VIP',
+    body: 'Julián se acerca con una copa en la mano y una sonrisa que lleva décadas perfeccionando. "Hay una terraza privada", dice simplemente. "Mejor vista. Mejor compañía."',
+    choices: [
+      { text: 'Aceptar y entrar al mundo del poder', next: 'B2' },
+      { text: 'Coquetear pero mantener distancia', next: 'B2' },
+      { text: 'Usar la oportunidad para conocer contactos', next: 'B2' }
+    ]
+  },
+  B2: {
+    id: 'AP 03', color: 'julian', character: 'Julián',
+    title: 'Julián descubre tu amistad con Leo',
+    body: 'La conversación fluye hasta que menciona a Leo. Su mirada cambia ligeramente. "¿Leo García? ¿Lo conoces de cerca?" Hay algo en su tono que no es del todo casual.',
+    choices: [
+      { text: 'Defender a Leo sin dudar', next: 'D2' },
+      { text: 'Restarle importancia a la amistad', next: 'B3' },
+      { text: 'Usar los celos a tu favor', next: 'B3' }
+    ]
+  },
+  B3: {
+    id: 'AP 04', color: 'julian', character: 'Julián',
+    title: 'Julián te ofrece trabajo en su empresa',
+    body: 'Días después, un sobre en tu puerta. Dentro: una oferta de trabajo y una nota a mano. "Tu intuición vale más que lo que cualquier currículum pueda decir."',
+    choices: [
+      { text: 'Aceptar la oferta', next: 'B4' },
+      { text: 'Negociar una sociedad igualitaria', next: 'B4' },
+      { text: 'Rechazar y mantener tu independencia', next: 'C3' }
+    ]
+  },
+  B4: {
+    id: 'AP 05', color: 'julian', character: 'Julián',
+    title: 'Julián financia la galería de Mateo',
+    body: 'Revisando archivos de la empresa encuentras algo inesperado: transferencias mensuales a nombre de la galería de Mateo. Julián lo financia todo... en secreto.',
+    choices: [
+      { text: 'Contárselo a Mateo de inmediato', next: 'C4' },
+      { text: 'Guardar el secreto por ahora', next: 'B5' },
+      { text: 'Exigirle explicaciones a Julián', next: 'B5' }
+    ]
+  },
+  B5: {
+    id: 'AP 06', color: 'julian', character: 'Julián',
+    title: 'Julián te propone ir a Londres',
+    body: 'En la terraza donde todo comenzó, Julián pone sobre la mesa dos copas y una decisión. "Londres. Contigo. Construir algo que valga la pena." Te mira esperando.',
+    choices: [
+      { text: 'Irte con él a Londres', next: 'B6' },
+      { text: 'Pedir tiempo para pensarlo', next: 'B7' },
+      { text: 'Quedarte y construir tu propia vida', next: 'B8' }
+    ]
+  },
+  B6: {
+    id: 'FINAL A1', color: 'julian', type: 'final', badge: 'Final Julián · A1',
+    title: 'Reina del lujo en Europa',
+    body: 'Londres te recibe con lluvia fina y promesas en varios idiomas. Junto a Julián aprendes que el poder no se hereda, se negocia. Y tú negocias mejor que nadie. La ciudad es tuya tanto como de él - quizás más.'
+  },
+  B7: {
+    id: 'FINAL A2', color: 'julian', type: 'final', badge: 'Final Julián · A2',
+    title: 'Pareja poderosa entre dos países',
+    body: 'Decidiste tomar tu tiempo - y eso cambió todo. Julián aprendió a esperar. Tú aprendiste que el amor verdadero no exige respuestas rápidas. Viven entre Madrid y Londres, sin perder nada de quienes son.'
+  },
+  B8: {
+    id: 'FINAL A3', color: 'julian', type: 'final', badge: 'Final Julián · A3',
+    title: 'Fundas tu propio imperio',
+    body: 'Le dijiste que no. No por miedo, sino por certeza. Lo que aprendiste en ese mundo lo convertiste en tu propio capital. Tu empresa no necesita su nombre. Julián lo sabe, y te admira por eso.'
+  },
+  C: {
+    id: 'AP 11', color: 'mateo', character: 'Mateo',
+    title: 'Mateo te invita a pintar un mural',
+    body: 'Mateo se escapa de la gala como si las paredes le pesaran. "Conozco una barda en la colonia Roma", dice sin mirarte, "que lleva años pidiendo que alguien le diga algo." Pausa. "¿Vienes?"',
+    choices: [
+      { text: 'Ir sin pensarlo', next: 'C2' },
+      { text: 'Ir, pero solo como amiga', next: 'C2' },
+      { text: 'Decirle que Leo también vaya', next: 'D3' }
+    ]
+  },
+  C2: {
+    id: 'AP 12', color: 'mateo', character: 'Mateo',
+    title: 'El mural se vuelve viral',
+    body: 'Una foto de los dos frente al mural termina en Instagram. En 48 horas: cien mil likes. La prensa habla de "el artista y su musa". Mateo te mira incómodo. Tú también - pero por razones distintas.',
+    choices: [
+      { text: 'Hacerlo famoso juntos, abiertamente', next: 'C3' },
+      { text: 'Esconder tu identidad', next: 'C3' },
+      { text: 'Vender la historia a la prensa', next: 'B4' }
+    ]
+  },
+  C3: {
+    id: 'AP 13', color: 'mateo', character: 'Mateo',
+    title: 'Mateo confiesa que siempre te vio diferente',
+    body: 'Entre brochas y pintura seca, Mateo habla por fin. "No eres como las personas de ese mundo. Nunca lo fuiste." Levanta la vista. "Yo lo supe desde la primera vez que te vi."',
+    choices: [
+      { text: 'Besarlo', next: 'C4' },
+      { text: 'Confesarle que tus sentimientos están en otro lado', next: 'D4' },
+      { text: 'Pedirle tiempo para entender lo que sientes', next: 'C4' }
+    ]
+  },
+  C4: {
+    id: 'AP 14', color: 'mateo', character: 'Mateo',
+    title: 'Julián compra una exposición para Mateo',
+    body: 'Julián aparece con una propuesta que parece generosa: financiar la exposición más importante de la carrera de Mateo. Pero tiene condiciones. Y tú estás en medio de los dos.',
+    choices: [
+      { text: 'Convencer a Mateo de aceptar', next: 'C5' },
+      { text: 'Decirle que no venda su esencia por dinero', next: 'C5' },
+      { text: 'Tomar el control como su manager', next: 'C5' }
+    ]
+  },
+  C5: {
+    id: 'AP 15', color: 'mateo', character: 'Mateo',
+    title: 'Mateo gana una beca a París',
+    body: 'El sobre llega un martes. Beca completa, un año en París, la oportunidad que cambiaría todo para Mateo. Te lo dice con los ojos brillantes y una pregunta implícita flotando en el aire.',
+    choices: [
+      { text: 'Irte con él a París', next: 'C6' },
+      { text: 'Quedarte por Leo', next: 'D5' },
+      { text: 'Ir sola después, a tu ritmo', next: 'C7' }
+    ]
+  },
+  C6: {
+    id: 'FINAL B1', color: 'mateo', type: 'final', badge: 'Final Mateo · B1',
+    title: 'Vida bohemia por Europa',
+    body: 'París primero, Berlín después, Lisboa por temporadas. Mateo pinta. Tú escribes, fotografías, creas. Nadie pregunta qué "son" exactamente - esa pregunta dejó de importar en algún puente sobre el Sena.'
+  },
+  C7: {
+    id: 'FINAL B2', color: 'mateo', type: 'final', badge: 'Final Mateo · B2',
+    title: 'Te vuelves artista internacional',
+    body: 'Mateo se fue. Tú te quedaste el tiempo suficiente para entender que su historia te había encendido algo propio. Cuando por fin cruzas el Atlántico, lo haces con tu nombre - no con el de nadie más.'
+  },
+  D: {
+    id: 'AP 21', color: 'leo', character: 'Leo',
+    title: 'Leo te confiesa su amor en el jardín',
+    body: 'Leo te lleva al jardín exterior, lejos del ruido de la gala. El aire huele a jazmín. Después de un silencio largo, habla: "Llevo años queriendo decirte algo."',
+    choices: [
+      { text: 'Besarlo', next: 'D2' },
+      { text: 'Decirle que necesitas tiempo para pensarlo', next: 'D2' },
+      { text: 'Confesarle que Mateo y Julián te confunden', next: 'D2' }
+    ]
+  },
+  D2: {
+    id: 'AP 22', color: 'leo', character: 'Leo',
+    title: 'Leo sospecha de Julián',
+    body: 'Leo no dice nada directamente, pero algo en su mirada lo delata. "¿Cuánto tiempo llevas hablando con Julián Vega?" Te estudia buscando la respuesta que no le estás dando.',
+    choices: [
+      { text: 'Negarlo - no hay nada que explicar', next: 'D3' },
+      { text: 'Ser completamente honesta con él', next: 'B3' },
+      { text: 'Usar los celos para provocarlo', next: 'D3' }
+    ]
+  },
+  D3: {
+    id: 'AP 23', color: 'leo', character: 'Leo',
+    title: 'Leo propone un viaje juntos',
+    body: 'Leo aparece un sábado con dos boletos impresos. "Europa. Una semana. Sin teléfonos, sin eventos, sin nada de esto." Te los pone en la mano y espera.',
+    choices: [
+      { text: 'Aceptar y ir solo con él', next: 'D4' },
+      { text: 'Invitar también a Mateo', next: 'C3' },
+      { text: 'Rechazar - necesitas espacio', next: 'D4' }
+    ]
+  },
+  D4: {
+    id: 'AP 24', color: 'leo', character: 'Leo',
+    title: 'Leo recibe un trabajo lejos',
+    body: 'Una oferta de trabajo llega a Leo desde Monterrey - la oportunidad que esperaba toda su carrera. Vendría con distancia. Vendría con una decisión no dicha.',
+    choices: [
+      { text: 'Irte con él', next: 'D5' },
+      { text: 'Intentar una relación a distancia', next: 'D5' },
+      { text: 'Terminar bien y seguir caminos distintos', next: 'C5' }
+    ]
+  },
+  D5: {
+    id: 'AP 25', color: 'leo', character: 'Leo',
+    title: 'Años después reaparecen Julián y Mateo',
+    body: 'Han pasado tres años. Leo y tú construyeron algo sólido. Entonces llegan dos mensajes el mismo día: Julián desde Londres, Mateo desde París. Los dos, exitosos. Los dos, pensando en ti.',
+    choices: [
+      { text: 'Elegir a Leo - lo real siempre estuvo aquí', next: 'D6' },
+      { text: 'Dudar y conocerlos de nuevo', next: 'X' },
+      { text: 'Elegirte a ti misma - ninguno de los tres', next: 'D7' }
+    ]
+  },
+  D6: {
+    id: 'FINAL C1', color: 'leo', type: 'final', badge: 'Final Leo · C1',
+    title: 'Familia estable y amor real',
+    body: 'Cerraste el teléfono. No por miedo al pasado, sino porque el presente era mejor que cualquier historia que el pasado pudiera ofrecerte. Leo lo supo. Y eso, en sí mismo, fue suficiente.'
+  },
+  D7: {
+    id: 'FINAL C2', color: 'leo', type: 'final', badge: 'Final Leo · C2',
+    title: 'Viajas sola y renaces',
+    body: 'Compraste un boleto. Destino: el que querías desde hace años pero nunca priorizaste. Sin Julián, sin Mateo, sin Leo. Solo tú y la versión de ti misma que ninguno de los tres llegó a conocer.'
+  },
+  X: {
+    id: 'FINAL MIXTO', color: 'gold', type: 'final', badge: 'Final Mixto',
+    title: 'Nuevo triángulo amoroso',
+    body: 'Abriste esa puerta y detrás encontraste exactamente lo que temías - y lo que secretamente querías. El triángulo que pensabas cerrado se dibuja de nuevo, esta vez con tres personas que ya saben cómo duele. Y aun así, empiezan.'
+  }
+};
+
+const COLORS = { gold:'var(--gold)', julian:'var(--julian)', mateo:'var(--mateo)', leo:'var(--leo)' };
+const PROGRESS = {
+  intro:0, A:5,
+  B:15, B2:22, B3:30, B4:38, B5:46, B6:100, B7:100, B8:100,
+  C:15, C2:22, C3:30, C4:38, C5:46, C6:100, C7:100,
+  D:15, D2:22, D3:30, D4:38, D5:46, D6:100, D7:100, X:100
+};
+
+function getColor(key) { return COLORS[key] || COLORS.gold; }
+
+function setBackground(id) {
+  const bg = document.getElementById('scene-bg');
+  const img = IMAGENES[id];
+  if (img && img.trim() !== '') {
+    bg.style.backgroundImage = `url('${img}')`;
+    bg.classList.remove('no-image');
+  } else {
+    bg.style.backgroundImage = 'none';
+    bg.classList.add('no-image');
+  }
+}
+
+function renderIntro() {
+  return `
+    <div class="scene active intro-scene">
+      <span class="ornament">✦</span>
+      <div class="scene-title">Entre Tres Mundos</div>
+      <p class="intro-subtitle">Una noche de lujo, cámaras y secretos.<br>Tres hombres aparecen en tu destino.</p>
+      <div class="divider" style="margin:0 auto 40px;"></div>
+      <div class="character-cards">
+        <div class="char-card" style="--char-color:var(--julian)">
+          <div class="char-name">Julián</div>
+          <div class="char-role">Magnate poderoso</div>
+        </div>
+        <div class="char-card" style="--char-color:var(--mateo)">
+          <div class="char-name">Mateo</div>
+          <div class="char-role">Artista rebelde</div>
+        </div>
+        <div class="char-card" style="--char-color:var(--leo)">
+          <div class="char-name">Leo</div>
+          <div class="char-role">Amigo de toda la vida</div>
+        </div>
+      </div>
+      <button class="start-btn" onclick="goTo('A')">Comenzar historia</button>
+    </div>`;
+}
+
+function renderScene(id) {
+  const s = SCENES[id];
+  if (!s) return '';
+  if (s.type === 'intro') return renderIntro();
+
+  const color = getColor(s.color);
+  const isFinal = s.type === 'final';
+
+  const choicesHTML = !isFinal && s.choices ? `
+    <div class="choices-label">¿Qué haces?</div>
+    <div class="choices">
+      ${s.choices.map((c,i) => `
+        <button class="choice-btn" onclick="goTo('${c.next}')">
+          <span class="choice-letter">Opción ${String.fromCharCode(65+i)}</span>
+          ${c.text}
+        </button>`).join('')}
+    </div>` : '';
+
+  const finalHTML = isFinal ? `
+    <div class="final-badge">${s.badge}</div>
+    <button class="restart-btn" onclick="goTo('intro')">↩ Volver al inicio</button>` : '';
+
+  return `
+    <div class="scene active ${isFinal ? 'final-scene' : ''}" style="--scene-color:${color}">
+      <div class="chapter-label">
+        ${s.character ? `<span>${s.character}</span> · ` : ''}${s.id}
+      </div>
+      <h2 class="scene-title">${s.title}</h2>
+      <div class="divider"></div>
+      <p class="scene-body">${s.body}</p>
+      ${isFinal ? finalHTML : choicesHTML}
+    </div>`;
+}
+
+function goTo(id) {
+  document.getElementById('app').innerHTML = renderScene(id);
+  setBackground(id);
+  const trail = document.getElementById('trail');
+  const s = SCENES[id];
+  trail.style.width = (PROGRESS[id] ?? 50) + '%';
+  trail.style.background = s ? getColor(s.color || 'gold') : 'var(--gold)';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+goTo('intro');
+</script>
+</body>
+</html>
